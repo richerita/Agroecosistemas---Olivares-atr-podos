@@ -1,0 +1,88 @@
+---
+title: "Análisis de datos Agroeco Olivares"
+author: "Ana Isabel Martínez Richart"
+date: "24/4/2015"
+output: word_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+### Preparación del programa y archivos
+
+Cargar paquetes de R si procede y los archivos de datos necesarios:
+
+```{r}
+abund <- read.table("C:/Users/Ana/Documents/ASIGNATURAS/agroecosistemas/excels varios/abundacias corregidas con log.csv", header=TRUE, sep=",", na.strings="NA", dec=".", strip.white=TRUE)
+
+diver <- read.table("C:/Users/Ana/Documents/ASIGNATURAS/agroecosistemas/diversidad corregido punto y coma.csv", header=TRUE, sep=",", na.strings="NA", dec=".", strip.white=TRUE)
+
+manejo <- read.table("C:/Users/Ana/Documents/ASIGNATURAS/agroecosistemas/manejo con log.csv", header=TRUE, sep=",", na.strings="NA", dec=".", strip.white=TRUE)
+
+```
+
+
+### Análisis de datos
+
+Se analizarán la abundancia y diversidad de los dos olivares -manejo integrado y ecológico-, mediante la comparación de medias.  
+
+Para elegir el test comparativo adecuado es necesario en primer lugar efectuar una prueba de normalidad de los datos y, en función del resultado, escoger un análisis paramétrico o no paramétrico.  
+
+#### Test de Normalidad Shapiro-Wilk
+
+```{r}
+with(diver, shapiro.test(H.CopaEco))
+with(diver, shapiro.test(H.CopaInt))
+with(diver, shapiro.test(H.SueloEco))
+with(diver, shapiro.test(H.SueloInt))
+with(abund, shapiro.test(Ab.CopaEco))
+with(abund, shapiro.test(Ab.CopaInt))
+with(abund, shapiro.test(Ab.SueloEco))
+with(abund, shapiro.test(Ab.SueloInt))
+
+#transformar los datos de abundancia de suelos con logaritmos y comprobar la normalidad:
+with(abund, shapiro.test(log.Ab.SE))
+with(abund, shapiro.test(log.Ab.SI))
+```
+
+Los resultados del test de normalidad son que todos los datos tienen una distribución normal excepto las abundancias en suelos. Cuando no hay normalidad en los datose originales, se pueden intentar transformar mediante logaritmos, en este caso el logaritmo de las abundancias en suelos sí que es normal.  
+
+Para comparar medias de dos conjuntos que tienen una distribución normal (análisis paramétrico) es necesario comprobar la homogeneidad de varianzas:
+
+#### Test de homogeneidad de varianzas de Bartlett
+
+```{r}
+with(manejo, tapply(A.Copa, manejo, var, na.rm=TRUE))
+bartlett.test(A.Copa ~ manejo, data=manejo)
+with(manejo, tapply(log.A.Suelo, manejo, var, na.rm=TRUE))
+bartlett.test(log.A.Suelo ~ manejo, data=manejo)
+with(manejo, tapply(H.Copa, manejo, var, na.rm=TRUE))
+bartlett.test(H.Copa ~ manejo, data=manejo)
+with(manejo, tapply(H.suelo, manejo, var, na.rm=TRUE))
+bartlett.test(H.suelo ~ manejo, data=manejo)
+```
+
+Las varianzas resultaron homogéneas al compararlas por mismo hábitat y distinto manejo, excepto en el caso de la abundancia en copas, por lo tanto aunque los datos de abundancia en copas presentan una distribución normal no podrán compararse sus medias con un análisis paramétrico.
+
+#### Test paramétrico de comparación de medias t de Student
+
+Se realiza sobre los datos de diversidad, y los del logaritmo de la abundancia en suelos, ya que son los que cumplen todas las asunciones para esta prueba: normalidad de la variable dependiente, homogeneidad de varianzas, muestras aleatorias e independientes.
+
+```{r}
+t.test(H.Copa~manejo, alternative='two.sided', conf.level=.95, var.equal=FALSE, data=manejo)
+t.test(H.suelo~manejo, alternative='two.sided', conf.level=.95, var.equal=FALSE, data=manejo)
+t.test(log.A.Suelo~manejo, alternative='two.sided', conf.level=.95, var.equal=FALSE, data=manejo)
+```
+
+En cuanto a diversidad, entre copas no hay diferencias significativas, al contrario que ocurre en la diversidad entre suelos. Las medias son significativamente distintas entre diversidad de suelo ecológico e integral.  
+En cuanto a la abundancia en suelos, tampoco hay diferencias significativas.
+
+#### Comparaciones no paramétricas - Wilcoxon
+
+Aunque los métodos no paramétricos no sean válidos para estimar efectos, sí que son de utilidad para probar hipótesis, 
+
+```{r}
+with(manejo, tapply(A.Copa, manejo, median, na.rm=TRUE))
+wilcox.test(A.Copa ~ manejo, alternative="two.sided", data=manejo)
+```
+
+Hay diferencias significativas de abundancia entre las copas de olivar ecológico e integrado. Las medianas son 3 y 6 para ecológico e integrado respectivamente.
